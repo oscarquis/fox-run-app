@@ -1,4 +1,4 @@
-name: Build Fox Run APK
+name: Build Fox Run AAB
 
 on:
   push:
@@ -37,12 +37,66 @@ jobs:
       - name: Sincronizar Capacitor
         run: npx cap sync android
 
-      - name: Compilar APK
-        working-directory: android
-        run: ./gradlew assembleDebug
+      - name: Recuperar keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/fox-run-release.jks
 
-      - name: Guardar APK
+      - name: Configurar firma
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          cat >> android/gradle.properties <<EOF2
+          MYAPP_UPLOAD_STORE_FILE=fox-run-release.jks
+          MYAPP_UPLOAD_KEY_ALIAS=$KEY_ALIAS
+          MYAPP_UPLOAD_STORE_PASSWORD=$KEYSTORE_PASSWORD
+          MYAPP_UPLOAD_KEY_PASSWORD=$KEYSTORE_PASSWORD
+          EOF2
+
+      - name: Configurar firma en Gradle
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("android/app/build.gradle")
+          s = p.read_text()
+
+          signing = """    signingConfigs {
+          release {
+              def props = new Properties()
+              def propsFile = rootProject.file("gradle.properties")
+              propsFile.withInputStream { props.load(it) }
+
+              storeFile file(props["MYAPP_UPLOAD_STORE_FILE"])
+              storePassword props["MYAPP_UPLOAD_STORE_PASSWORD"]
+              keyAlias props["MYAPP_UPLOAD_KEY_ALIAS"]
+              keyPassword props["MYAPP_UPLOAD_KEY_PASSWORD"]
+          }
+      }
+
+"""
+
+          if "signingConfigs {" not in s:
+              s = s.replace("    buildTypes {", signing + "    buildTypes {", 1)
+
+          if "signingConfig signingConfigs.release" not in s:
+              s = s.replace(
+                  "        release {",
+                  "        release {\n            signingConfig signingConfigs.release",
+                  1
+              )
+
+          p.write_text(s)
+          PY
+
+      - name: Compilar AAB Release
+        working-directory: android
+        run: ./gradlew bundleRelease
+
+      - name: Guardar AAB
         uses: actions/upload-artifact@v4
         with:
-          name: Fox-Run-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: Fox-Run-AAB
+          path: android/app/build/outputs/bundle/release/app-release.aab
