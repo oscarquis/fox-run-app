@@ -48,48 +48,10 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          cat >> android/gradle.properties <<EOF2
-          MYAPP_UPLOAD_STORE_FILE=fox-run-release.jks
-          MYAPP_UPLOAD_KEY_ALIAS=$KEY_ALIAS
-          MYAPP_UPLOAD_STORE_PASSWORD=$KEYSTORE_PASSWORD
-          MYAPP_UPLOAD_KEY_PASSWORD=$KEYSTORE_PASSWORD
-          EOF2
-
-      - name: Configurar firma en Gradle
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          p = Path("android/app/build.gradle")
-          s = p.read_text()
-
-          signing = """    signingConfigs {
-          release {
-              def props = new Properties()
-              def propsFile = rootProject.file("gradle.properties")
-              propsFile.withInputStream { props.load(it) }
-
-              storeFile file(props["MYAPP_UPLOAD_STORE_FILE"])
-              storePassword props["MYAPP_UPLOAD_STORE_PASSWORD"]
-              keyAlias props["MYAPP_UPLOAD_KEY_ALIAS"]
-              keyPassword props["MYAPP_UPLOAD_KEY_PASSWORD"]
-          }
-      }
-
-"""
-
-          if "signingConfigs {" not in s:
-              s = s.replace("    buildTypes {", signing + "    buildTypes {", 1)
-
-          if "signingConfig signingConfigs.release" not in s:
-              s = s.replace(
-                  "        release {",
-                  "        release {\n            signingConfig signingConfigs.release",
-                  1
-              )
-
-          p.write_text(s)
-          PY
+          echo "MYAPP_UPLOAD_STORE_FILE=fox-run-release.jks" >> android/gradle.properties
+          echo "MYAPP_UPLOAD_KEY_ALIAS=$KEY_ALIAS" >> android/gradle.properties
+          echo "MYAPP_UPLOAD_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> android/gradle.properties
+          echo "MYAPP_UPLOAD_KEY_PASSWORD=$KEYSTORE_PASSWORD" >> android/gradle.properties
 
       - name: Compilar AAB Release
         working-directory: android
