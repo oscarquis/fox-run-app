@@ -53,7 +53,7 @@ jobs:
           echo "MYAPP_UPLOAD_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> android/gradle.properties
           echo "MYAPP_UPLOAD_KEY_PASSWORD=$KEYSTORE_PASSWORD" >> android/gradle.properties
 
-            - name: Compilar AAB y APK Release
+      - name: Compilar AAB y APK Release
         working-directory: android
         run: ./gradlew bundleRelease assembleRelease
 
