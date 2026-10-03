@@ -41,7 +41,7 @@ jobs:
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          echo "$KEYSTORE_BASE64" | base64 --decode > android/fox-run-release.jks
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/fox-run-release.jks
 
       - name: Configurar firma
         env:
